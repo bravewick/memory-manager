@@ -18,7 +18,5 @@
   "bugs": {
     "url": "https://github.com/bravewick/memory-manager/issues"
   },
-  "dependencies": {
-    "nodemon": "~1.3.7"
-  }
+  "dependencies": {}
 }
