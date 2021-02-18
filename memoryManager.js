@@ -3,11 +3,12 @@
 
 function MemoryManager(memory) {
     this.freeBlocks = [{ index: 0, size: memory.length }];
+    this.blocks = [];
     this.memory = memory;
 }
 
 MemoryManager.prototype.allocate = function (size) {
-    var allocatedBlock;
+    let allocatedBlock;
     var block = this.freeBlocks.filter(function (block) {
         return block.size >= size;
     }).sort(function(a, b) {
@@ -23,14 +24,41 @@ MemoryManager.prototype.allocate = function (size) {
                 size: block[0].size - size
             });
         }
-        return allocatedBlock[0].index;
+        allocatedBlock = { index: allocatedBlock[0].index, size };
+        this.blocks.push(allocatedBlock);
+        this.blocks.sort((a, b) => a.index - b.index);
+
+        return allocatedBlock.index;
     } else {
         throw new Error('No memory available');
     }
 }
 
 MemoryManager.prototype.release = function (index) {
-    console.log('Releasing memory');
+    const blockIndex = this.blocks.findIndex((block) => block.index === index);
+    if (blockIndex >= 0) {
+        const block = this.blocks.splice(blockIndex, 1);
+        let start = 0;
+        this.freeBlocks = [];
+        this.blocks.forEach((allocatedBlock) => {
+            if (allocatedBlock.index > start) {
+                this.freeBlocks.push({
+                    index: start,
+                    size: allocatedBlock.index - start
+                });
+            }
+            start = allocatedBlock.index + allocatedBlock.size;
+        });
+        if (start < this.memory.length) {
+            this.freeBlocks.push({
+                index: start,
+                size: this.memory.length - start
+            });
+        }
+
+    } else {
+        throw new Error('Not and index to an allocated memory block');
+    }
 }
 
 MemoryManager.prototype.write = function (index, value) {
@@ -42,8 +70,12 @@ MemoryManager.prototype.write = function (index, value) {
     }
 }
 
-MemoryManager.prototype.read = function (size) {
-    return this.memory[size];
+MemoryManager.prototype.read = function (index) {
+    if (this.isFree(index)) {
+        return this.memory[index];
+    } else {
+        throw new Error('The memory is not allocated');
+    }
 }
 
 MemoryManager.prototype.dump = function () {
@@ -54,7 +86,6 @@ MemoryManager.prototype.dump = function () {
     console.log('+++++++++++++++++++++++ MEMORY ++++++++++++++++++++++++');
     console.log(dump);
     console.log('+++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-
 }
 
 MemoryManager.prototype.isFree = function (index) {
@@ -76,20 +107,3 @@ MemoryManager.prototype.printASCII = function (size) {
 MemoryManager.prototype.printASCIIchar = function (number) {
     return String.fromCharCode(number);
 }
-
-var memoryArray = new Array(100);
-var memoryManager = new MemoryManager(memoryArray);
-console.log('Allocating 10 blocks', memoryManager.allocate(10));
-console.log('Allocating 4 blocks', memoryManager.allocate(4));
-console.log('Allocating 40 blocks', memoryManager.allocate(40));
-console.log('Allocating 20 blocks', memoryManager.allocate(20));
-// console.log('Allocating 23 blocks', memoryManager.allocate(23));
-
-// console.log('Allocating 100 blocks', memoryManager.allocate(100));
-// memoryManager.dump();
-memoryManager.write(10);
-memoryManager.read(10);
-memoryManager.isFree();
-// MemoryManager.printASCIIchar(45);   // -
-// MemoryManager.printASCIIchar(927);  // O
-// MemoryManager.printASCIIchar(920);  // Θ
